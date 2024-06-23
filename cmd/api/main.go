@@ -1,59 +1,50 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"go-memo-api/config"
+	"go-memo-api/internal/config"
+	"go-memo-api/internal/routes"
 	"log"
-	"time"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 func main() {
+	// ポートフラグの追加
+	port := flag.String("port", "8082", "ポート番号")
+	flag.Parse()
+
+	// ログファイルを開く
+	logFile, err := os.OpenFile("tmp/local.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
+	defer logFile.Close()
+
+	// ログの出力先をファイルに設定
+	log.SetOutput(logFile)
+
 	// .envファイルを読み込む
-	err := godotenv.Load()
+	err = godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
 	cfg := config.LoadConfig()
 
-	// Ginを使った簡単なルートの定義
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
 
-	// Gormを使った簡単なデータベース接続
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
+	// ルートのセットアップ
+	routes.SetupRoutes(r, cfg)
 
-	var db *gorm.DB
-	for i := 0; i < 10; i++ {
-		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-		if err == nil {
-			break
-		}
-		log.Printf("Failed to connect to database (attempt %d): %s\n", i+1, err)
-		time.Sleep(2 * time.Second)
-	}
+	log.Println("Routes have been successfully set up")
 
+	// サーバーを開始
+	err = r.Run(fmt.Sprintf(":%s", *port))
 	if err != nil {
-		log.Fatalf("Failed to connect to database after 10 attempts: %s", err)
+		log.Fatalf("Server failed to start: %v", err)
 	}
-
-	// テーブル名を取得してログに流す
-	var tables []string
-	db.Raw("SHOW TABLES").Scan(&tables)
-	log.Println("Tables in the database:")
-	for _, table := range tables {
-		log.Println(table)
-	}
-
-	r.Run(":8080")
 }
