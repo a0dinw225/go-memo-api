@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -36,6 +37,15 @@ func main() {
 	cfg := config.LoadConfig()
 
 	r := gin.Default()
+
+	// CORSミドルウェアの設定
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	// ルートのセットアップ
 	routes.SetupRoutes(r, cfg)
