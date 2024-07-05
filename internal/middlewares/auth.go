@@ -33,13 +33,13 @@ func AuthMiddleware(secretKey string, dbUser, dbPassword, dbHost, dbPort, dbName
 			}
 		}
 
-		// tokenStringからbearerを削除
+		// tokenStringからBearerを削除
 		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 		// データベース接続をセットアップ
 		db := utils.SetupDatabaseConnection(dbUser, dbPassword, dbHost, dbPort, dbName)
 
-		// プレーンテキストのトークンからユーザーIDを取得
+		// トークンからユーザーIDを取得
 		var tokenRecord models.PersonalAccessToken
 		err = db.Where("token = ?", tokenString).First(&tokenRecord).Error
 		if err != nil {
